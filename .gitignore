@@ -1,0 +1,6 @@
+.txt
+.csv
+*~
+result/*
+log/*
+node_modules/*

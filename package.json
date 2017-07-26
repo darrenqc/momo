@@ -1,0 +1,25 @@
+{
+  "name": "momo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "bda-util": "^0.1.1",
+    "crawler": "^1.0.5",
+    "moment": "2.10.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darrenqc/momo.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/darrenqc/momo/issues"
+  },
+  "homepage": "https://github.com/darrenqc/momo#readme"
+}
