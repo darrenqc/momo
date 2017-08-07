@@ -6,7 +6,9 @@
   "dependencies": {
     "bda-util": "^0.1.1",
     "crawler": "^1.0.5",
-    "moment": "2.10.3"
+    "line-by-line": "^0.1.5",
+    "moment": "2.10.3",
+    "mongodb": "^2.2.30"
   },
   "devDependencies": {},
   "scripts": {

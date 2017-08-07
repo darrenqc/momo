@@ -4,7 +4,9 @@ const fs = require('fs');
 const Crawler = require('crawler');
 const moment = require('moment');
 const EventEmitter = require('events').EventEmitter;
-const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.log`);
+const SESSIONID_LIST = require('./appdata/sessionIds.json');
+const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.recommend.log`);
+const ROUND_TODO = 3;
 
 const ProxyManager = {
 	proxies:require('./appdata/proxies.json'),
@@ -29,40 +31,56 @@ class Momo extends EventEmitter {
 		this.roomResultFile = `momo.room.${moment().format('YYYY-MM-DD')}.csv`;
 		this.userResultFile = `momo.user.${moment().format('YYYY-MM-DD')}.csv`;
 		this.crawler = new Crawler({
-			rateLimit: 2000,
+			rateLimit: 5000,
 			jQuery: false,
-			userAgent: 'MomoChat/8.0.1 Android/1436 (HUAWEIMT7-TL00; Android 4.4.2; Gapps 1; zh_CN; 14)'
+			userAgent: 'MomoChat/7.6 Android/1210 (VTR-AL00; Android 7.0; Gapps 1; zh_CN; 14)'
 		});
 		this.crawler.on('schedule', (option) => {
-			// ProxyManager.setOptProxy(option);
+			ProxyManager.setOptProxy(option);
+			option.headers = option.headers || {};
+			let sessionId = null;
+			if(option.uri === 'https://live-api.immomo.com/guestv3/mmkit/home/recommend') {
+				sessionId = '615D42A2-57B2-CBDB-14D9-270DEFB50E1D_G';
+			} else {
+				sessionId = this.getSessionId();
+			}
+			option.headers.Cookie = 'SESSIONID='+sessionId;
+			option.limiter = sessionId;
 		});
 		this.crawler.on('request', (option) => {
-			option.headers = option.headers || {};
-			option.headers.Cookie = 'SESSIONID='+this.getSessionId();
-			logger.info(option.headers.Cookie);
 		});
 		this.crawler.on('drain', () => {
-			logger.info('Job done');
+			if(++this.round >= ROUND_TODO) {
+				return logger.info('Job done');
+			} else {
+				logger.info(`Round ${this.round} starts...`);
+				this.doneRoom = {};
+				this.emit('getRecommend', 0);
+			}
 		});
 		this.on('getRecommend', this.getRecommend.bind(this));
 		this.on('getAudience', this.getAudience.bind(this));
 		this.on('getProfile', this.getProfile.bind(this));
+		this.round = 1;
+		this.doneRoom = {};
+		this.doneUser = {};
 	}
 
 	getRecommend(index) {
 		let self = this;
 		self.crawler.queue({
-			uri: 'https://live-api.immomo.com/v3/mmkit/home/recommend',
+			uri: 'https://live-api.immomo.com/guestv3/mmkit/home/recommend',
+			priority: 0,
 			method: 'POST',
 			form: {
-				'next_time':index === 0 ? '0' : '',
-				'index':index,
-				'lat':'39.879449',
-				'lng':'116.465704',
-				'sex':'ALL',
+				'MDAPI_BackgroundKey':'0',
 				'src':'',
 				'filtertype':'999',
-				'MDAPI_BackgroundKey':'1'
+				'index':index,
+				'sex':'ALL',
+				'next_time':index === 0 ? '0' : '',
+				'lat':'39.879449',	
+				'lng':'116.465704'
 			},
 			callback: (err, res, done) => {
 				const logPrefix = `<Recommend index ${index}>`
@@ -87,9 +105,15 @@ class Momo extends EventEmitter {
 				json.data = json.data || {};
 				json.data.lists = json.data.lists || [];
 
-				let roomData = [];
+				let roomData = [], hostData = [];
 				json.data.lists.forEach(show => {
+					if(show.roomid in self.doneRoom) {
+						return;
+					} else {
+						self.doneRoom[show.roomid] = null;
+					}
 					roomData.push([
+							self.round,
 							show.roomid,
 							show.city,
 							show.rtype,
@@ -97,23 +121,31 @@ class Momo extends EventEmitter {
 							show.sub_title,
 							show.momoid,
 							show.people
-						].map(text => ((text||'n/a')+'').trim().replace(/[\r\n\t,]/g, ''))
+						].map(text => ((text===undefined?'n/a':text)+'').trim().replace(/[\r\n\t,]/g, ''))
+						.join());
+					hostData.push([
+							show.roomid,
+							show.momoid,
+							'主播'
+						].map(text => ((text===undefined?'n/a':text)+'').trim().replace(/[\r\n\t,]/g, ''))
 						.join());
 
 					if(show.momoid) {
 						self.emit('getAudience', show.roomid, 0);
-						self.emit('getProfile', show.roomid, show.momoid, 'host');
 					}
 				});
 
 				if(roomData.length) {
 					fs.appendFileSync(self.resultdir+self.roomResultFile, roomData.join('\n')+'\n');
 				}
+				if(hostData.length) {
+					fs.appendFileSync(self.resultdir+self.userResultFile, hostData.join('\n')+'\n');
+				}
 
-				logger.info('%s Got %s live show', logPrefix, json.data.lists.length);
+				logger.info('%s Got %s/%s live show', logPrefix, roomData.length, json.data.lists.length);
 				logger.info('%s, next_flag: %s, next_index: %s', logPrefix, json.data.next_flag, json.data.next_index);
 
-				if(json.data.next_flag) {
+				if(json.data.next_flag && index < 250) {
 					self.emit('getRecommend', json.data.next_index);
 				}
 				done();
@@ -124,7 +156,7 @@ class Momo extends EventEmitter {
 	getAudience(roomId, index) {
 		let self = this;
 		self.crawler.queue({
-			uri: 'https://live-api.immomo.com/v3/room/ranking/online',
+			uri: 'https://live-api.immomo.com/guestv3/room/ranking/online',
 			method: 'POST',
 			form: {
 				'roomid': roomId,
@@ -155,9 +187,24 @@ class Momo extends EventEmitter {
 				json.data = json.data || {};
 				json.data.lists = json.data.lists || [];
 
+				let userData = [];
 				json.data.lists.forEach(audience => {
-					self.emit('getProfile', roomId, audience.momoid, 'audience');
+					if(audience.momoid in self.doneUser) {
+						return;
+					} else {
+						self.doneUser[audience.momoid] = null;
+					}
+					userData.push([
+							roomId,
+							audience.momoid,
+							'观众'
+						].map(text => ((text===undefined?'n/a':text)+'').trim().replace(/[\r\n\t,]/g, ''))
+						.join());
 				});
+
+				if(userData.length) {
+					fs.appendFileSync(self.resultdir+self.userResultFile, userData.join('\n')+'\n');
+				}
 
 				logger.info('%s got %s audience', logPrefix, json.data.lists.length);
 				logger.info('%s, has_next: %s, next_index: %s', logPrefix, json.data.has_next, json.data.next_index);
@@ -173,7 +220,7 @@ class Momo extends EventEmitter {
 	getProfile(roomId, momoId, userType) {
 		let self = this;
 		self.crawler.queue({
-			uri: 'https://live-api.immomo.com/v3/user/card/lite',
+			uri: 'https://live-api.immomo.com/guestv3/user/card/lite',
 			method: 'POST',
 			form: {
 				'roomid': roomId,
@@ -237,7 +284,7 @@ class Momo extends EventEmitter {
 					json.data.vip.active_level,
 					json.data.svip.valid,
 					json.data.svip.active_level
-				].map(text => ((text||'n/a')+'').trim().replace(/[\r\n\t,]/g, ''))
+				].map(text => ((text===undefined?'n/a':text)+'').trim().replace(/[\r\n\t,]/g, ''))
 				.join();
 
 				fs.appendFileSync(self.resultdir+self.userResultFile, profile+'\n');
@@ -248,11 +295,7 @@ class Momo extends EventEmitter {
 	}
 
 	getSessionId() {
-		const list = [
-			'540E04BB-7972-1EE8-A96E-969FFAF7A1C7',
-			'81000CF9-42BE-D970-A95E-6C43E2F1969C'
-		]
-		return list[Math.floor(Math.random()*list.length)];
+		return SESSIONID_LIST[Math.floor(Math.random()*SESSIONID_LIST.length)];
 	}
 
 	init() {
@@ -262,8 +305,8 @@ class Momo extends EventEmitter {
 		if(!fs.existsSync(this.resultdir)) {
 			fs.mkdirSync(this.resultdir);
 		}
-		fs.writeFileSync(this.resultdir+this.roomResultFile, '\ufeffroomId,city,roomType,roomTitle,roomSubtitle,hostMomoId,audience\n')
-		fs.writeFileSync(this.resultdir+this.userResultFile, '\ufeffmomoId,nick,roomId,userType,isZhubo,sex,age,constellation,city,fans,fansGroup,charm,fortune,charmPercent,charmGap,fortunePercent,fortuneGap,vipValid,vipLevel,svipValid,svipLevel\n')
+		fs.writeFileSync(this.resultdir+this.roomResultFile, '\ufeffround,roomId,city,roomType,roomTitle,roomSubtitle,hostMomoId,audience\n');
+		fs.writeFileSync(this.resultdir+this.userResultFile, '\ufeffroomId,momoId,主播/观众\n');
 		logger.info('init completes...');
 	}
 
