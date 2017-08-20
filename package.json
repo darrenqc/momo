@@ -8,7 +8,8 @@
     "crawler": "^1.0.5",
     "line-by-line": "^0.1.5",
     "moment": "2.10.3",
-    "mongodb": "^2.2.30"
+    "mongodb": "^2.2.30",
+    "tunnel-agent": "git://github.com/bda-research/tunnel-agent.git#timeout"
   },
   "devDependencies": {},
   "scripts": {

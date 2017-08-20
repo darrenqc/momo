@@ -6,7 +6,7 @@ const moment = require('moment');
 const EventEmitter = require('events').EventEmitter;
 const SESSIONID_LIST = require('./appdata/sessionIds.json');
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.recommend.log`);
-const ROUND_TODO = 3;
+const ROUND_TODO = 5;
 
 const ProxyManager = {
 	proxies:require('./appdata/proxies.json'),

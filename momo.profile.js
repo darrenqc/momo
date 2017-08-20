@@ -151,7 +151,7 @@ class Momo extends EventEmitter {
 
 	onMongoReady() {
 		let self = this;
-		let stream = self.db.collection(COLLECTION).find({type:'主播'}).stream();
+	        let stream = self.db.collection(COLLECTION).find().stream();
 		stream.on('data', (data) => {
 			self.users.push(data.momoId);
 		});
