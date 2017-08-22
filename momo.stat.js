@@ -115,7 +115,7 @@ function getFortune(data) {
 		} else if(mode === 'month') {
 			period = moment(date, 'YYYYMMDD').format('YYYY-MM');
 		}
-		fortuneMap[week] = {
+		fortuneMap[period] = {
 			fortune: data.wealth[date].fortune,
 			percent: data.wealth[date].fortunePercent,
 			gap: data.wealth[date].fortuneGap
@@ -155,7 +155,7 @@ function getCharm(data) {
 		} else if(mode === 'month') {
 			period = moment(date, 'YYYYMMDD').format('YYYY-MM');
 		}
-		charmMap[week] = {
+		charmMap[period] = {
 			charm: data.wealth[date].charm,
 			percent: data.wealth[date].charmPercent,
 			gap: data.wealth[date].charmGap
