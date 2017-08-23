@@ -7,6 +7,10 @@ const mongoUrl = 'mongodb://localhost:27017/momo';
 const COLLECTION = 'user';
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.stat.log`);
 const dir = './result/';
+const charmLevelSum = require('./appdata/charmLevelSum.json');
+const charmLevelGap = require('./appdata/charmLevelGap.json');
+const fortuneLevelSum = require('./appdata/fortuneLevelSum.json');
+const fortuneLevelGap = require('./appdata/fortuneLevelGap.json');
 
 let mode = process.argv.splice(2)[0];
 if(!mode || ['week','month'].indexOf(mode) === -1) {
@@ -192,12 +196,28 @@ function getCharm(data) {
 	return charm;
 }
 
+// fortune_1 - fortune_2
 function calFortuneDiff(fortune_1, fortune_2) {
-	return 'diff';
+	let val_1 = 0, val_2 = 0;
+	if(fortune_1.fortune !== null) {
+		val_1 = fortuneLevelSum[fortune_1.fortune] + fortuneLevelGap[fortune_1.fortune] - fortune_1.gap;
+	}
+	if(fortune_2.fortune !== null) {
+		val_2 = fortuneLevelSum[fortune_2.fortune] + fortuneLevelGap[fortune_2.fortune] - fortune_2.gap;
+	}
+	return val_1 - val_2;
 }
 
+// charm_1 - charm_2
 function calCharmDiff(charm_1, charm_2) {
-	return 'diff';
+	let val_1 = 0, val_2 = 0;
+	if(charm_1.charm !== null) {
+		val_1 = charmLevelSum[charm_1.charm] + charmLevelGap[charm_1.charm] - charm_1.gap;
+	}
+	if(charm_2.charm !== null) {
+		val_2 = charmLevelSum[charm_2.charm] + charmLevelGap[charm_2.charm] - charm_2.gap;
+	}
+	return val_1 - val_2;
 }
 
 function getShowup(data) {
