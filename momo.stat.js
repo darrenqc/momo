@@ -48,7 +48,7 @@ logger.info('Periods to calculate: %s', periods);
 
 let event = new EventEmitter();
 event.on('MONGO_READY', onMongoReady);
-event.on('MONGO_DONE', onMongoEnd);
+event.on('MONGO_END', onMongoEnd);
 event.on('ON_DATA', onData);
 
 MongoClient.connect(mongoUrl, (err, db) => {
@@ -78,7 +78,21 @@ function onMongoReady(db) {
 	});
 }
 
+function sanitize(data) {
+	if('wealth' in data) {
+		Object.keys(data.wealth).forEach(date => {
+			if(data.wealth[date].fortune === null && data.wealth[date].fortunePercent !== null) {
+				data.wealth[date].fortune = 0;
+			}
+			if(data.wealth[date].charm === null && data.wealth[date].charmPercent !== null) {
+				data.wealth[date].charm = 0;
+			}
+		});
+	}
+}
+
 function onData(data) {
+	sanitize(data);
 	let fortuneRecords = [], charmRecords = [], showupRecords = [];
 	for(let i = 0; i < periods.length; ++i) {
 		fortuneRecords.push(getFortune(data));

@@ -99,12 +99,12 @@ class Momo extends EventEmitter {
 			city: json.data.city || null,
 			fans: parseInt(json.data.fansCount) || null
 		};
-		update[`wealth.${self.date}.charm`] = parseInt(json.data.charm) || null;
-		update[`wealth.${self.date}.charmPercent`] = parseInt(json.data.gap_charm.percent) || null;
-		update[`wealth.${self.date}.charmGap`] = parseInt(json.data.gap_charm.nextgap) || null;
-		update[`wealth.${self.date}.fortune`] = parseInt(json.data.fortune) || null;
-		update[`wealth.${self.date}.fortunePercent`] = parseInt(json.data.gap_fortune.percent) || null;
-		update[`wealth.${self.date}.fortuneGap`] = parseInt(json.data.gap_fortune.nextgap) || null;
+		update[`wealth.${self.date}.charm`] = isNaN(parseInt(json.data.charm)) ? null : parseInt(json.data.charm);
+		update[`wealth.${self.date}.charmPercent`] = isNaN(parseInt(json.data.gap_charm.percent)) ? null : parseInt(json.data.gap_charm.percent);
+		update[`wealth.${self.date}.charmGap`] = isNaN(parseInt(json.data.gap_charm.nextgap)) ? null : parseInt(json.data.gap_charm.nextgap);
+		update[`wealth.${self.date}.fortune`] = isNaN(parseInt(json.data.fortune)) ? null : parseInt(json.data.fortune);
+		update[`wealth.${self.date}.fortunePercent`] = isNaN(parseInt(json.data.gap_fortune.percent)) ? null : parseInt(json.data.gap_fortune.percent);
+		update[`wealth.${self.date}.fortuneGap`] = isNaN(parseInt(json.data.gap_fortune.nextgap)) ? null : parseInt(json.data.gap_fortune.nextgap);
 
 		self.db.collection(COLLECTION).update({momoId: momoId}, {$set: update}, (err) => {
 			if(err) {
