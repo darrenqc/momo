@@ -16,8 +16,8 @@ if(!mode || ['week','month'].indexOf(mode) === -1) {
 let START_TIME = null, END_TIME = null;
 let writer_showup = null, writer_fortune = null, writer_charm = null;
 if(mode === 'week') {
-	START_TIME = moment('2017-08-20', 'YYYY-MM-DD');
-	END_TIME = moment('2017-08-27', 'YYYY-MM-DD').startOf('week');
+	START_TIME = moment('2017-08-13', 'YYYY-MM-DD');
+	END_TIME = moment().startOf('week');
 	writer_showup = fs.createWriteStream(`${dir}momo.showup.${moment().subtract(1, 'w').format('YYYY[W]ww')}.csv`);
 	writer_fortune = fs.createWriteStream(`${dir}momo.fortune.${moment().subtract(1, 'w').format('YYYY[W]ww')}.csv`);
 	writer_charm = fs.createWriteStream(`${dir}momo.charm.${moment().subtract(1, 'w').format('YYYY[W]ww')}.csv`);
