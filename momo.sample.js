@@ -149,6 +149,7 @@ function onMongoEnd(db) {
 		db.close();
 		logger.info('Job done');
 	} else {
+		logger.info('countToInsert: %s', countToInsert);
 		setTimeout(function() {
 			event.emit('MONGO_END', db);
 		}, 10000);
