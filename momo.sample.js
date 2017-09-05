@@ -69,8 +69,8 @@ function onData(data) {
 		if(!(fortuneLevel in distribution.user)) {
 			distribution.user[fortuneLevel] = [];
 		}
-		let index = binarySearch(0, distribution.user[fortuneLevel].length, distribution.user[fortuneLevel], momoId);
-		distribution.user[fortuneLevel].splice(index, 0, momoId);
+		let index = binarySearch(0, distribution.user[fortuneLevel].length, distribution.user[fortuneLevel], data.momoId);
+		distribution.user[fortuneLevel].splice(index, 0, data.momoId);
 	}
 }
 
