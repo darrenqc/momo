@@ -53,6 +53,10 @@ MongoClient.connect(mongoUrl, (err, db) => {
 });
 
 function onMongoReady(db) {
+	if(mode === 'sample') {
+		db.collection(SAMPLE_COLLECTION).createIndex({momoId:1,type:1},{unique:true});
+	}
+
 	let count = 0;
 	let stream = db.collection(WHOLE_COLLECTION).find().stream();
 	stream.on('data', (data) => {
@@ -69,9 +73,6 @@ function onMongoReady(db) {
 					if(err) {
 						logger.error('Failed to insert momoId=%s, %s', data.momoId, err);
 					}
-					if(countToInsert === 0) {
-						event.emit('MONGO_END', db);
-					}
 				});
 			}
 		} else {
@@ -87,7 +88,9 @@ function onMongoReady(db) {
 		if(mode === 'distribution') {
 			fs.writeFileSync('./result/momoId.distribution.json', JSON.stringify(distribution));
 		}
-		event.emit('MONGO_END', db);
+		setTimeout(function() {
+			event.emit('MONGO_END', db);
+		}, 100000);
 	});
 }
 
@@ -142,8 +145,12 @@ function binarySearch(start, end, array, value) {
 }
 
 function onMongoEnd(db) {
-	if(countToInsert === 0 && db) {
+	if(countToInsert === 0) {
 		db.close();
 		logger.info('Job done');
+	} else {
+		setTimeout(function() {
+			event.emit('MONGO_END', db);
+		}, 10000);
 	}
 }
