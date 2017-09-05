@@ -14,10 +14,35 @@ event.on('MONGO_READY', onMongoReady);
 event.on('MONGO_END', onMongoEnd);
 event.on('ON_DATA', onData);
 
-let distribution = {
-	host: [],
-	user: {}
+let mode, distribution, sampleIds = {};
+if(!fs.existsSync('./result/momoId.distribution.json')) {
+	distribution = {
+		host: [],
+		user: {}
+	};
+	mode = 'distribution';
+} else {
+	mode = 'sample';
 }
+logger.info('current mode is <%s>', mode);
+
+if(mode === 'sample') {
+	distribution = JSON.parse(fs.readFileSync('./result/momoId.distribution.json').toString());
+	distribution.host.forEach(momoId => {
+		sampleIds[momoId] = null;
+	});
+	Object.keys(distribution.user).forEach(fortuneLevel => {
+		if(fortuneLevel === 'null') {
+			return;
+		}
+		for(let i = 0; i < distribution.user[fortuneLevel].length; i+=SAMPLE_INTERVAL) {
+			sampleIds[distribution.user[fortuneLevel][i]] = null;
+		}
+	});
+	logger.info('Total # of sampleIds: %s', Object.keys(sampleIds).length);
+}
+
+let countToInsert = 0;
 
 MongoClient.connect(mongoUrl, (err, db) => {
 	if(err) {
@@ -35,14 +60,33 @@ function onMongoReady(db) {
 		if(count%5000 === 0) {
 			logger.info('current progress: %d', count);
 		}
-		event.emit('ON_DATA', data);
+		if(mode === 'sample') {
+			if(data.momoId in sampleIds) {
+				++countToInsert;
+				sanitize(data);
+				db.collection(SAMPLE_COLLECTION).insertOne(data, (err, res) => {
+					--countToInsert;
+					if(err) {
+						logger.error('Failed to insert momoId=%s, %s', data.momoId, err);
+					}
+					if(countToInsert === 0) {
+						event.emit('MONGO_END', db);
+					}
+				});
+			}
+		} else {
+			event.emit('ON_DATA', data);
+		}
+		
 	});
 	stream.on('error', (error) => {
 		logger.error(error);
 	});
 	stream.on('end', () => {
 		logger.info('All users loaded');
-		fs.writeFileSync('./result/momoId.distribution.json', JSON.stringify(distribution));
+		if(mode === 'distribution') {
+			fs.writeFileSync('./result/momoId.distribution.json', JSON.stringify(distribution));
+		}
 		event.emit('MONGO_END', db);
 	});
 }
@@ -98,5 +142,8 @@ function binarySearch(start, end, array, value) {
 }
 
 function onMongoEnd(db) {
-	db.close();
+	if(countToInsert === 0 && db) {
+		db.close();
+		logger.info('Job done');
+	}
 }
