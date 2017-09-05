@@ -88,8 +88,14 @@ function sanitize(data) {
 			if(data.wealth[date].fortune === null && data.wealth[date].fortunePercent !== null) {
 				data.wealth[date].fortune = 0;
 			}
+			if(data.wealth[date].fortune === 0 && data.wealth[date].fortunePercent === null) {
+				data.wealth[date].fortune = null;
+			}
 			if(data.wealth[date].charm === null && data.wealth[date].charmPercent !== null) {
 				data.wealth[date].charm = 0;
+			}
+			if(data.wealth[date].charm === 0 && data.wealth[date].charmPercent === null) {
+				data.wealth[date].charm = null;
 			}
 		});
 	}
