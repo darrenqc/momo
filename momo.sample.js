@@ -75,6 +75,13 @@ function onData(data) {
 }
 
 function binarySearch(start, end, array, value) {
+	if(start === end) {
+		if(array[start] && value > array[start]) {
+			return start+1;
+		} else {
+			return start;
+		}
+	}
 	if(start > end) {
 		return start;
 	}
