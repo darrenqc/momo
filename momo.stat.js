@@ -45,8 +45,8 @@ while(timepoint.isBefore(END_TIME)) {
 	}
 }
 writer_showup.write('\ufeffmomoId,userType,city,sex,age,constellation,'+periods.join()+'\n');
-writer_fortune.write('\ufeffmomoId,userType,city,sex,age,constellation,'+periods.join()+'\n');
-writer_charm.write('\ufeffmomoId,userType,city,sex,age,constellation,'+periods.join()+'\n');
+writer_fortune.write('\ufeffmomoId,userType,city,sex,age,constellation,'+periods.map(period => `${period}-diff,${period}-abs`).join()+'\n');
+writer_charm.write('\ufeffmomoId,userType,city,sex,age,constellation,'+periods.map(period => `${period}-diff,${period}-abs`).join()+'\n');
 
 logger.info('Periods to calculate: %s', periods);
 
@@ -98,11 +98,11 @@ function sanitize(data) {
 function onData(data) {
 	sanitize(data);
 	let fortuneRecords = [], charmRecords = [], showupRecords = [];
-	for(let i = 0; i < periods.length; ++i) {
-		fortuneRecords.push(getFortune(data));
-		charmRecords.push(getCharm(data));
-		showupRecords.push(getShowup(data));
-	}
+	
+	fortuneRecords.push(getFortune(data));
+	charmRecords.push(getCharm(data));
+	showupRecords.push(getShowup(data));
+	
 	let userInfo = [
 		data.momoId,
 		data.type,
@@ -143,13 +143,16 @@ function getFortune(data) {
 	for(let i = 0; i < periods.length; i++) {
 		if(i > 0 && (periods[i] in fortuneMap) && (periods[i-1] in fortuneMap)) {
 			fortune.push(calFortuneDiff(fortuneMap[periods[i]],fortuneMap[periods[i-1]]));
+			fortune.push(calFortuneAbsolulte(fortuneMap[periods[i]]));
 		} else if(periods[i] in fortuneMap) {
 			fortune.push([
 					fortuneMap[periods[i]].fortune,
 					fortuneMap[periods[i]].percent,
 					fortuneMap[periods[i]].gap
 				].join('/'));
+			fortune.push(calFortuneAbsolulte(fortuneMap[periods[i]]));
 		} else {
+			fortune.push('n/a');
 			fortune.push('n/a');
 		}
 	}
@@ -183,13 +186,16 @@ function getCharm(data) {
 	for(let i = 0; i < periods.length; i++) {
 		if(i > 0 && (periods[i] in charmMap) && (periods[i-1] in charmMap)) {
 			charm.push(calCharmDiff(charmMap[periods[i]],charmMap[periods[i-1]]));
+			charm.push(calCharmAbsolulte(charmMap[periods[i]]));
 		} else if(periods[i] in charmMap) {
 			charm.push([
 					charmMap[periods[i]].charm,
 					charmMap[periods[i]].percent,
 					charmMap[periods[i]].gap
 				].join('/'));
+			charm.push(calCharmAbsolulte(charmMap[periods[i]]));
 		} else {
+			charm.push('n/a');
 			charm.push('n/a');
 		}
 	}
@@ -208,6 +214,14 @@ function calFortuneDiff(fortune_1, fortune_2) {
 	return val_1 - val_2;
 }
 
+function calFortuneAbsolulte(fortune) {
+	if(fortune.fortune === null) {
+		return 0;
+	} else {
+		return fortuneLevelSum[fortune.fortune] + fortuneLevelGap[fortune.fortune] - fortune.gap;
+	}
+}
+
 // charm_1 - charm_2
 function calCharmDiff(charm_1, charm_2) {
 	let val_1 = 0, val_2 = 0;
@@ -218,6 +232,14 @@ function calCharmDiff(charm_1, charm_2) {
 		val_2 = charmLevelSum[charm_2.charm] + charmLevelGap[charm_2.charm] - charm_2.gap;
 	}
 	return val_1 - val_2;
+}
+
+function calCharmAbsolulte(charm) {
+	if(charm.charm === null) {
+		return 0;
+	} else {
+		return charmLevelSum[charm.charm] + charmLevelGap[charm.charm] - charm.gap;
+	}
 }
 
 function getShowup(data) {
