@@ -5,7 +5,7 @@ const EventEmitter = require('events').EventEmitter;
 const Byline = require('line-by-line');
 const MongoClient = require('mongodb').MongoClient;
 const mongoUrl = 'mongodb://localhost:27017/momo';
-const COLLECTION = 'user';
+const COLLECTION = 'sample';
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/import_user.log`);
 
 class Import extends EventEmitter {
@@ -57,7 +57,7 @@ class Import extends EventEmitter {
 		self.reader = new Byline(`./result/momo.user.${self.date.format('YYYY-MM-DD')}.csv`);
 		self.reader.on('line', (line) => {
 			let user = self.parse(line);
-			if(user === null) {
+			if(user === null || user.type === '观众') {
 				return;
 			}
 			let key = `showup_${self.date.format('YYYYMM')}.${self.date.format('D')}`;
