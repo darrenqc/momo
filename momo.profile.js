@@ -8,6 +8,7 @@ const SESSIONID_LIST = require('./appdata/sessionIds.json');
 const mongoUrl = 'mongodb://localhost:27017/momo';
 const COLLECTION = 'sample';
 const concurrent = 35;
+const RETRIES = 5;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
 
 const ProxyManager = {
@@ -55,11 +56,11 @@ class Momo extends EventEmitter {
 
 	parseProfile(err, res, done) {
 		let self = this;
-		let momoId = res.options.momoId;
+		let user = res.options.user;
 		const logPrefix = `<Profile ${momoId}>`;
 		if(err) {
 			logger.error('%s Failed to get profile: %s', logPrefix, err);
-			self.doUser();
+			self.doUser(user);
 			return done();
 		}
 
@@ -68,13 +69,13 @@ class Momo extends EventEmitter {
 			json = JSON.parse(res.body);
 		} catch(e) {
 			logger.error('%s JSON parse failed: %s', logPrefix, res.body);
-			self.doUser();
+			self.doUser(user);
 			return done();
 		}
 
 		if(json.em !== 'OK') {
 			logger.error('%s Status not OK: %s', logPrefix, res.body);
-			self.doUser();
+			self.doUser(user);
 			return done();
 		}
 
@@ -89,7 +90,37 @@ class Momo extends EventEmitter {
 					json.data[key].nextgap = parseInt(match[1])*10000;
 				}
 			}
+			json.data[key].percent = isNaN(parseInt(json.data[key].percent)) ? null : parseInt(json.data[key].percent);
+			json.data[key].nextgap = isNaN(parseInt(json.data[key].nextgap)) ? null : parseInt(json.data[key].nextgap);
 		});
+
+		['charm','fortune'].forEach(key => {
+			json.data[key] = isNaN(parseInt(json.data[key])) ? null : parseInt(json.data[key]);
+		});
+
+		if(retries > 0) {
+			if(user.lastCharm !== null) {
+				if(json.data.charm === null && json.data.charm < user.lastCharm) {
+					logger.warn('user %s %s retries left got invalid charm, %s', user.momoId, user.retries, res.body);
+					return self.doUser(user);
+				}
+			}
+			if(user.lastFortune !== null) {
+				if(json.data.fortune === null && json.data.fortune < user.lastFortune) {
+					logger.warn('user %s %s retries left got invalid fortune, %s', user.momoId, user.retries, res.body);
+					return self.doUser(user);
+				}
+			}
+
+			if(user.lastCharm === null && user.lastFortune === null) {
+				if(json.data.fortune === null || json.data.fortune === 0 || json.data.charm === null || json.data.fortune === 0) {
+					logger.warn('user %s %s retries left, got null, %s', user.momoId, user.retries, res.body);
+					retries self.doUser(user);
+				}
+			}
+		} else {
+			logger.warn('user %s no retries left, compromise to %s', user.momoId, res.body);
+		}
 
 		let update = {
 			nick: json.data.nick,
@@ -99,12 +130,12 @@ class Momo extends EventEmitter {
 			city: json.data.city || null,
 			fans: parseInt(json.data.fansCount) || null
 		};
-		update[`wealth.${self.date}.charm`] = isNaN(parseInt(json.data.charm)) ? null : parseInt(json.data.charm);
-		update[`wealth.${self.date}.charmPercent`] = isNaN(parseInt(json.data.gap_charm.percent)) ? null : parseInt(json.data.gap_charm.percent);
-		update[`wealth.${self.date}.charmGap`] = isNaN(parseInt(json.data.gap_charm.nextgap)) ? null : parseInt(json.data.gap_charm.nextgap);
-		update[`wealth.${self.date}.fortune`] = isNaN(parseInt(json.data.fortune)) ? null : parseInt(json.data.fortune);
-		update[`wealth.${self.date}.fortunePercent`] = isNaN(parseInt(json.data.gap_fortune.percent)) ? null : parseInt(json.data.gap_fortune.percent);
-		update[`wealth.${self.date}.fortuneGap`] = isNaN(parseInt(json.data.gap_fortune.nextgap)) ? null : parseInt(json.data.gap_fortune.nextgap);
+		update[`wealth.${self.date}.charm`] = json.data.charm;
+		update[`wealth.${self.date}.charmPercent`] = json.data.gap_charm.percent;
+		update[`wealth.${self.date}.charmGap`] = json.data.gap_charm.nextgap;
+		update[`wealth.${self.date}.fortune`] = json.data.fortune;
+		update[`wealth.${self.date}.fortunePercent`] = json.data.gap_fortune.percent;
+		update[`wealth.${self.date}.fortuneGap`] = json.data.gap_fortune.nextgap;
 
 		self.db.collection(COLLECTION).update({momoId: momoId}, {$set: update}, (err) => {
 			if(err) {
@@ -122,23 +153,28 @@ class Momo extends EventEmitter {
 		return SESSIONID_LIST[Math.floor(Math.random()*SESSIONID_LIST.length)];
 	}
 
-	doUser() {
+	doUser(user) {
 		let self = this;
-		let momoId = self.users.shift();
-		if(!momoId) {
+		if(!user) {
+			user = self.users.shift();
+		}
+		if(!user) {
 			return;
+		}
+		if(user.retries-- <= 0) {
+			return self.doUser();
 		}
 		self.crawler.queue({
 			uri: 'https://live-api.immomo.com/guestv3/user/card/lite',
 			method: 'POST',
 			form: {
 				'roomid': '1479600263930',
-				'remoteid': momoId,
+				'remoteid': user.momoId,
 				'src': 'live_onlive_user',
 				'lat':'39.879449',
 				'lng':'116.465704'
 			},
-			momoId: momoId
+			user: user
 		});
 	}
 
@@ -153,7 +189,18 @@ class Momo extends EventEmitter {
 		let self = this;
 		let stream = self.db.collection(COLLECTION).find().stream();
 		stream.on('data', (data) => {
-			self.users.push(data.momoId);
+			let lastFortune = null, lastCharm = null;
+			if('wealth' in data) {
+				let status = data.wealth[Object.keys(data.wealth)[Object.keys(data.wealth).length-1]];
+				lastFortune = status.fortune;
+				lastCharm = status.charm;
+			}
+			self.users.push({
+				momoId: data.momoId,
+				lastFortune: lastFortune,
+				lastCharm: lastCharm,
+				retries: RETRIES
+			});
 		});
 		stream.on('error', (err) => {
 			logger.error(err);

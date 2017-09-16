@@ -54,10 +54,10 @@ class Copy extends EventEmitter {
 
 		let count = 0;
 
-		self.stream = db.collection(FROM_COLLECTION).find().stream();
+		self.stream = self.db.collection(FROM_COLLECTION).find().stream();
 		self.stream.on('data', (data) => {
 			++count;
-			if(count&5000 === 0) {
+			if(count%5000 === 0) {
 				logger.info('Current progress: %s', count);
 			}
 			self.operations.push({
@@ -65,8 +65,7 @@ class Copy extends EventEmitter {
 					momoId: data.momoId
 				},
 				update: {
-					$set: {},
-					$setOnInsert: {
+					$set: {
 						type: data.type
 					}
 				}
@@ -105,5 +104,5 @@ class Copy extends EventEmitter {
 	}
 }
 
-let instance = new Import();
+let instance = new Copy();
 instance.start();
