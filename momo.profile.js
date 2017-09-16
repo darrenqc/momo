@@ -7,7 +7,7 @@ const EventEmitter = require('events').EventEmitter;
 const SESSIONID_LIST = require('./appdata/sessionIds.json');
 const mongoUrl = 'mongodb://localhost:27017/momo';
 const COLLECTION = 'sample';
-const concurrent = 20;
+const concurrent = 35;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
 
 const ProxyManager = {
