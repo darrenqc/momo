@@ -57,7 +57,7 @@ class Momo extends EventEmitter {
 	parseProfile(err, res, done) {
 		let self = this;
 		let user = res.options.user;
-		const logPrefix = `<Profile ${momoId}>`;
+		const logPrefix = `<Profile ${user.momoId}>`;
 		if(err) {
 			logger.error('%s Failed to get profile: %s', logPrefix, err);
 			self.doUser(user);
@@ -98,24 +98,27 @@ class Momo extends EventEmitter {
 			json.data[key] = isNaN(parseInt(json.data[key])) ? null : parseInt(json.data[key]);
 		});
 
-		if(retries > 0) {
+		if(user.retries > 0) {
 			if(user.lastCharm !== null) {
 				if(json.data.charm === null && json.data.charm < user.lastCharm) {
 					logger.warn('user %s %s retries left got invalid charm, %s', user.momoId, user.retries, res.body);
-					return self.doUser(user);
+					self.doUser(user);
+					return done();
 				}
 			}
 			if(user.lastFortune !== null) {
 				if(json.data.fortune === null && json.data.fortune < user.lastFortune) {
 					logger.warn('user %s %s retries left got invalid fortune, %s', user.momoId, user.retries, res.body);
-					return self.doUser(user);
+					self.doUser(user);
+					return done();
 				}
 			}
 
 			if(user.lastCharm === null && user.lastFortune === null) {
 				if(json.data.fortune === null || json.data.fortune === 0 || json.data.charm === null || json.data.fortune === 0) {
 					logger.warn('user %s %s retries left, got null, %s', user.momoId, user.retries, res.body);
-					retries self.doUser(user);
+					self.doUser(user);
+					return done();
 				}
 			}
 		} else {
@@ -137,7 +140,7 @@ class Momo extends EventEmitter {
 		update[`wealth.${self.date}.fortunePercent`] = json.data.gap_fortune.percent;
 		update[`wealth.${self.date}.fortuneGap`] = json.data.gap_fortune.nextgap;
 
-		self.db.collection(COLLECTION).update({momoId: momoId}, {$set: update}, (err) => {
+		self.db.collection(COLLECTION).update({momoId: user.momoId}, {$set: update}, (err) => {
 			if(err) {
 				logger.error(`${logPrefix} failed to update: ${err}`);
 			} else {
