@@ -7,7 +7,7 @@ const EventEmitter = require('events').EventEmitter;
 const SESSIONID_LIST = require('./appdata/sessionIds.json');
 const mongoUrl = 'mongodb://localhost:27017/momo';
 const COLLECTION = 'sample';
-const concurrent = 35;
+const concurrent = 60;
 const RETRIES = 5;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
 
@@ -100,14 +100,26 @@ class Momo extends EventEmitter {
 
 		if(user.retries > 0) {
 			if(user.lastCharm !== null) {
-				if(json.data.charm === null && json.data.charm < user.lastCharm) {
+				if(user.lastCharm > 0 && (json.data.charm === null || json.data.charm === 0)) {
+					logger.warn('user %s add 1 to retries, %s retries left got invalid charm, %s', user.momoId, user.retries, res.body);
+					user.retries++;
+					self.doUser(user);
+					return done();
+				}
+				if(json.data.charm === null || json.data.charm < user.lastCharm) {
 					logger.warn('user %s %s retries left got invalid charm, %s', user.momoId, user.retries, res.body);
 					self.doUser(user);
 					return done();
 				}
 			}
 			if(user.lastFortune !== null) {
-				if(json.data.fortune === null && json.data.fortune < user.lastFortune) {
+				if(user.lastFortune > 0 && (json.data.fortune === null || json.data.fortune === 0)) {
+					logger.warn('user %s add 1 to retries, %s retries left got invalid fortune, %s', user.momoId, user.retries, res.body);
+					user.retries++;
+					self.doUser(user);
+					return done();
+				}
+				if(json.data.fortune === null || json.data.fortune < user.lastFortune) {
 					logger.warn('user %s %s retries left got invalid fortune, %s', user.momoId, user.retries, res.body);
 					self.doUser(user);
 					return done();
