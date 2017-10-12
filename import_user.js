@@ -10,7 +10,6 @@ if(__dirname.indexOf('_contrast') > -1) {
 	COLLECTION = 'sample_contrast';
 }
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/import_user.log`);
-const AUDIENCE_UPDATE_ONLY = __dirname.indexOf('_contrast') > -1 ? false : true;
 
 class Import extends EventEmitter {
 	constructor() {
@@ -72,7 +71,7 @@ class Import extends EventEmitter {
 			let set = {};
 			set[key] = null;
 			self.operations.push({
-				upsert: AUDIENCE_UPDATE_ONLY ? (user.type === '观众' ? false : true) : true,
+				upsert: user.type === '观众' ? false : true,
 				query: {
 					momoId: user.momoId
 				},
