@@ -5,7 +5,10 @@ const EventEmitter = require('events').EventEmitter;
 const Byline = require('line-by-line');
 const MongoClient = require('mongodb').MongoClient;
 const mongoUrl = 'mongodb://localhost:27017/momo';
-const COLLECTION = 'sample';
+let COLLECTION = 'sample';
+if(__dirname.indexOf('_contrast') > -1) {
+	COLLECTION = 'sample_contrast';
+}
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/import_user.log`);
 const AUDIENCE_UPDATE_ONLY = __dirname.indexOf('_contrast') > -1 ? false : true;
 
