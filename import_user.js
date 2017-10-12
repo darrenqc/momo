@@ -7,6 +7,7 @@ const MongoClient = require('mongodb').MongoClient;
 const mongoUrl = 'mongodb://localhost:27017/momo';
 const COLLECTION = 'sample';
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/import_user.log`);
+const AUDIENCE_UPDATE_ONLY = __dirname.indexOf('_contrast') > -1 ? false : true;
 
 class Import extends EventEmitter {
 	constructor() {
@@ -33,7 +34,11 @@ class Import extends EventEmitter {
 			let bulkOps = self.db.collection(COLLECTION).initializeUnorderedBulkOp();
 			for(let i = 0; i < self.operations.length; i++) {
 				let op = self.operations[i];
-				bulkOps.find(op.query).upsert().update(op.update);
+				if(op.upsert === true) {
+					bulkOps.find(op.query).upsert().update(op.update);
+				} else {
+					bulkOps.find(op.query).update(op.update);
+				}
 			}
 			self.operations = [];
 			bulkOps.execute((err) => {
@@ -57,13 +62,14 @@ class Import extends EventEmitter {
 		self.reader = new Byline(`./result/momo.user.${self.date.format('YYYY-MM-DD')}.csv`);
 		self.reader.on('line', (line) => {
 			let user = self.parse(line);
-			if(user === null || user.type === '观众') {
+			if(user === null) {
 				return;
 			}
 			let key = `showup_${self.date.format('YYYYMM')}.${self.date.format('D')}`;
 			let set = {};
 			set[key] = null;
 			self.operations.push({
+				upsert: AUDIENCE_UPDATE_ONLY ? (user.type === '观众' ? false : true) : true,
 				query: {
 					momoId: user.momoId
 				},

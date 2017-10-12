@@ -6,7 +6,10 @@ const MongoClient = require('mongodb').MongoClient;
 const EventEmitter = require('events').EventEmitter;
 const SESSIONID_LIST = require('./appdata/sessionIds.json');
 const mongoUrl = 'mongodb://localhost:27017/momo';
-const COLLECTION = 'sample';
+let COLLECTION = 'sample';
+if(__dirname.indexOf('_contrast') > -1) {
+	COLLECTION = 'sample_contrast';
+}
 const concurrent = 60;
 const RETRIES = 5;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
