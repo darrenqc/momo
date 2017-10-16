@@ -10,7 +10,7 @@ let COLLECTION = 'sample';
 if(__dirname.indexOf('_contrast') > -1) {
 	COLLECTION = 'sample_contrast';
 }
-const concurrent = 60;
+const concurrent = 50;
 const RETRIES = 5;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
 
@@ -60,7 +60,7 @@ class Momo extends EventEmitter {
 	parseProfile(err, res, done) {
 		let self = this;
 		let user = res.options.user;
-		const logPrefix = `<Profile ${user.momoId}>`;
+		const logPrefix = `<Profile ${user.momoId} sessionId ${res.options.limiter}>`;
 		if(err) {
 			logger.error('%s Failed to get profile: %s', logPrefix, err);
 			self.doUser(user);

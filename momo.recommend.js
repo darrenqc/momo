@@ -83,7 +83,7 @@ class Momo extends EventEmitter {
 				'lng':'116.465704'
 			},
 			callback: (err, res, done) => {
-				const logPrefix = `<Recommend index ${index}>`
+				const logPrefix = `<Recommend index ${index} sessionId ${res.options.limiter}>`;
 				if(err) {
 					logger.error('%s Failed to fetch recommended live shows: %s', logPrefix, err);
 					return done();
@@ -165,7 +165,7 @@ class Momo extends EventEmitter {
 				'lng':'116.465704'
 			},
 			callback: (err, res, done) => {
-				const logPrefix = `<Audience room ${roomId} index ${index}>`;
+				const logPrefix = `<Audience room ${roomId} index ${index} sessionId ${res.options.limiter}>`;
 				if(err) {
 					logger.error('%s Failed to get audience: %s', logPrefix, err);
 					return done();
@@ -230,7 +230,7 @@ class Momo extends EventEmitter {
 				'lng':'116.465704'
 			},
 			callback: (err, res, done) => {
-				const logPrefix = `<Profile room ${roomId} ${userType} ${momoId}>`;
+				const logPrefix = `<Profile room ${roomId} ${userType} ${momoId} sessionId ${res.options.limiter}>`;
 				if(err) {
 					logger.error('%s Failed to get profile: %s', logPrefix, err);
 					return done();
