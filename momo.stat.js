@@ -5,6 +5,9 @@ const EventEmitter = require('events').EventEmitter;
 const MongoClient = require('mongodb').MongoClient;
 const mongoUrl = 'mongodb://localhost:27017/momo';
 const COLLECTION = 'sample';
+if(__dirname.indexOf('_contrast') > -1) {
+	COLLECTION = 'sample_contrast';
+}
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.stat.log`);
 const dir = './result/';
 const charmLevelSum = require('./appdata/charmLevelSum.json');
