@@ -4,7 +4,7 @@ const moment = require('moment');
 const EventEmitter = require('events').EventEmitter;
 const MongoClient = require('mongodb').MongoClient;
 const mongoUrl = 'mongodb://localhost:27017/momo';
-const COLLECTION = 'sample';
+let COLLECTION = 'sample';
 if(__dirname.indexOf('_contrast') > -1) {
 	COLLECTION = 'sample_contrast';
 }
