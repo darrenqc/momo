@@ -7,9 +7,14 @@ const EventEmitter = require('events').EventEmitter;
 const SESSIONID_LIST = require('./appdata/sessionIds.json');
 const mongoUrl = 'mongodb://localhost:27017/momo';
 let COLLECTION = 'sample';
+// the closest Saturday <= today
+let UPDATE_TIME = moment().day(6).isAfter(moment()) ? moment().day(-1) : moment().day(6);
 if(__dirname.indexOf('_contrast') > -1) {
 	COLLECTION = 'sample_contrast';
+	// the closest Wednesday <= today
+	UPDATE_TIME = moment().day(3).isAfter(moment()) ? moment().day(-4) : moment().day(3);
 }
+UPDATE_TIME = UPDATE_TIME.format('YYYY-MM-DD');
 const concurrent = 50;
 const RETRIES = 5;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
@@ -154,6 +159,7 @@ class Momo extends EventEmitter {
 		update[`wealth.${self.date}.fortune`] = json.data.fortune;
 		update[`wealth.${self.date}.fortunePercent`] = json.data.gap_fortune.percent;
 		update[`wealth.${self.date}.fortuneGap`] = json.data.gap_fortune.nextgap;
+		update['updatedAt'] = new Date(UPDATE_TIME);
 
 		self.db.collection(COLLECTION).update({momoId: user.momoId}, {$set: update}, (err) => {
 			if(err) {
@@ -205,7 +211,7 @@ class Momo extends EventEmitter {
 
 	onMongoReady() {
 		let self = this;
-		let stream = self.db.collection(COLLECTION).find().stream();
+		let stream = self.db.collection(COLLECTION).find({updatedAt: {$lt: new Date(UPDATE_TIME)}}).stream();
 		stream.on('data', (data) => {
 			let lastFortune = null, lastCharm = null;
 			if('wealth' in data) {
@@ -246,6 +252,7 @@ class Momo extends EventEmitter {
 	}
 
 	start() {
+		logger.info('collection: %s, updatedAt < %s', COLLECTION, UPDATE_TIME);
 		this.init();
 	}
 }
