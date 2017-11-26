@@ -16,7 +16,7 @@ if(__dirname.indexOf('_contrast') > -1) {
 }
 UPDATE_TIME = UPDATE_TIME.format('YYYY-MM-DD');
 const concurrent = 50;
-const RETRIES = 5;
+const RETRIES = 4;
 const logger = require('bda-util/winston-rotate-local-timezone').getLogger(`./log/momo.profile.log`);
 
 const ProxyManager = {
@@ -110,7 +110,7 @@ class Momo extends EventEmitter {
 			if(user.lastCharm !== null) {
 				if(user.lastCharm > 0 && (json.data.charm === null || json.data.charm === 0)) {
 					logger.warn('user %s add 1 to retries, %s retries left got invalid charm, %s', user.momoId, user.retries, res.body);
-					user.retries++;
+					// user.retries++;
 					self.doUser(user);
 					return done();
 				}
@@ -123,7 +123,7 @@ class Momo extends EventEmitter {
 			if(user.lastFortune !== null) {
 				if(user.lastFortune > 0 && (json.data.fortune === null || json.data.fortune === 0)) {
 					logger.warn('user %s add 1 to retries, %s retries left got invalid fortune, %s', user.momoId, user.retries, res.body);
-					user.retries++;
+					// user.retries++;
 					self.doUser(user);
 					return done();
 				}
