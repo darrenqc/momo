@@ -40,7 +40,7 @@ let periods = [];
 let timepoint = START_TIME.clone();
 while(timepoint.isBefore(END_TIME)) {
 	if(mode === 'week') {
-		periods.push(timepoint.format('YYYY [W]w'));
+		periods.push(timepoint.format('gggg [W]w'));
 		timepoint.add(1, 'w');
 	} else if(mode === 'month') {
 		periods.push(timepoint.format('YYYY-MM'));
@@ -138,7 +138,7 @@ function getFortune(data) {
 	Object.keys(data.wealth).forEach(date => {
 		let period = null;
 		if(mode === 'week') {
-			period = moment(date, 'YYYYMMDD').format('YYYY [W]w');
+			period = moment(date, 'YYYYMMDD').format('gggg [W]w');
 		} else if(mode === 'month') {
 			period = moment(date, 'YYYYMMDD').format('YYYY-MM');
 		}
@@ -181,7 +181,7 @@ function getCharm(data) {
 	Object.keys(data.wealth).forEach(date => {
 		let period = null;
 		if(mode === 'week') {
-			period = moment(date, 'YYYYMMDD').format('YYYY [W]w');
+			period = moment(date, 'YYYYMMDD').format('gggg [W]w');
 		} else if(mode === 'month') {
 			period = moment(date, 'YYYYMMDD').format('YYYY-MM');
 		}
@@ -256,7 +256,7 @@ function getShowup(data) {
 	if(mode === 'week') {
 		for(let i = 0; i < periods.length; i++) {
 			let count = 0;
-			let date = moment(periods[i], 'YYYY [W]w').startOf('week');
+			let date = moment(periods[i], 'gggg [W]w').startOf('week');
 			for(let j = 0; j < 7; j++) {
 				let monthKey = date.format('[showup_]YYYYMM');
 				let dayKey = date.format('D');
